@@ -4,7 +4,8 @@ This is a Python template for Alexa to get you building skills (conversations) q
 
 from __future__ import print_function
 import random
-from dynamo_handler import write_whisper
+from dynamo_handler import write_whisper, Whisper
+# import dynamo_handler
 
 
 # --------------- Helpers that build all of the responses ----------------------
@@ -51,20 +52,24 @@ def get_readwhispers_response():
     return build_response(session_attributes, build_speechlet_response(
         card_title, speech_output, reprompt_text, should_end_session))
         
-def get_sendwhisper_response(intent):
+def get_sendwhisper_response(session, intent):
     """ An example of a custom intent. Same structure as welcome message, just make sure to add this intent
     in your alexa skill in order for it to work.
     """
     session_attributes = {}
     
     print("print intent")
-    print(intent)
+    print(session)
+    #print(intent)
     
     card_title = "Send Whisper To"
     speech_output = "All right, I'll send your whisper to " + intent['slots']['name']['value'] 
     reprompt_text = "Sending whisper"
     
-    write_whisper("aaa")
+    userID = session['user']['userId']
+    
+    whisper = Whisper(userID, intent['slots']['message']['value'], intent['slots']['password']['value'], intent['slots']['name']['value'])
+    write_whisper(whisper)
     
     should_end_session = False
     return build_response(session_attributes, build_speechlet_response(
@@ -127,7 +132,7 @@ def on_intent(intent_request, session):
     elif intent_name == "ReadWhispers":
         return get_readwhispers_response()
     elif intent_name == "SendWhisperToName":
-        return get_sendwhisper_response(intent)
+        return get_sendwhisper_response(session, intent)
     elif intent_name == "AMAZON.HelpIntent":
         return get_welcome_response()
     elif intent_name == "AMAZON.CancelIntent" or intent_name == "AMAZON.StopIntent":
@@ -160,7 +165,7 @@ def lambda_handler(event, context):
     function.
     """
     if (event['session']['application']['applicationId'] !=
-            "skill-id"):
+            "skill_id"):
         raise ValueError("Invalid Application ID")
 
     if event['session']['new']:
