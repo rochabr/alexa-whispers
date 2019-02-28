@@ -58,6 +58,26 @@ def write_whisper(whisper):
             ReturnValues="UPDATED_NEW"
         )
     return True
+    
+def read_whisper(userId, password):
+    dynamodb = boto3.resource('dynamodb')
+
+    table = dynamodb.Table('whispers')
+    
+    ext_whisper = table.query(
+        KeyConditionExpression=Key('userId').eq(userId)
+    )
+    
+    if ext_whisper['Count'] > 0:
+        whisper_list = []
+        for whisper in ext_whisper['Items'][0]['whispers']:
+            if whisper['password'] == password:
+                whisper_list.append(whisper['whisper'])
+        
+        print(whisper_list)
+        return whisper_list
+    
+    return []
 
 class Whisper:
     def __init__(self, userId, whisper, password, to):
@@ -66,4 +86,20 @@ class Whisper:
         self.password = password
         self.to = to
 
+    
+# title = "The Big New Movie"
+# year = 2015
+
+# response = table.put_item(
+#   Item={
+#         'year': year,
+#         'title': title,
+#         'info': {
+#             'plot':"Nothing happens at all.",
+#             'rating': decimal.Decimal(0)
+#         }
+#     }
+# )
+
+# print("PutItem succeeded:")
 # print(json.dumps(response, indent=4, cls=DecimalEncoder))
