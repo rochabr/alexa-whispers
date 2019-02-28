@@ -4,7 +4,7 @@ This is a Python template for Alexa to get you building skills (conversations) q
 
 from __future__ import print_function
 import random
-from dynamo_handler import write_whisper, Whisper
+from dynamo_handler import write_whisper, Whisper, read_whisper
 # import dynamo_handler
 
 
@@ -29,6 +29,26 @@ def build_speechlet_response(title, output, reprompt_text, should_end_session):
         },
         'shouldEndSession': should_end_session
     }
+    
+def build_whispered_response(title, output, reprompt_text, should_end_session):
+    return {
+        'outputSpeech': {
+            'type': 'SSML',
+            'ssml': output
+        },
+        'card': {
+            'type': 'Simple',
+            'title': "SessionSpeechlet - " + title,
+            'content': "SessionSpeechlet - " + output
+        },
+        'reprompt': {
+            'outputSpeech': {
+                'type': 'PlainText',
+                'text': reprompt_text
+            }
+        },
+        'shouldEndSession': should_end_session
+    }
 
 def build_response(session_attributes, speechlet_response):
     return {
@@ -38,18 +58,41 @@ def build_response(session_attributes, speechlet_response):
     }
 
 
+def build_output(whispers):
+    if len(whispers) == 0:
+        return "You don't have any whispers, today. Check again tomorrow!"
+    elif len(whispers) == 1:
+        return "<speak>You have one whisper! How exciting! Here it is! <amazon:effect name=\"whispered\">" + whispers[0] + ".</amazon:effect>.</speak>"
+    else:
+        count = 1
+        output = "<speak>You have " + str(len(whispers)) + " whispers. Let me whisper them to you..." 
+        for whisper in whispers:
+            output += "<break time=\"1s\"/>Whisper number " + str(count) + "! <amazon:effect name=\"whispered\">" + whisper + ".</amazon:effect>"
+            count = count + 1
+        
+        output += "<break time=\"1s\"/>Well, I hope you've enjoyed your whispers! Check again soon!</speak>"
+        print(output)
+        return output
+    
+
 # --------------- Functions that control the skill's behavior ------------------
-def get_readwhispers_response():
+def get_readwhispers_response(session, intent):
     """ An example of a custom intent. Same structure as welcome message, just make sure to add this intent
     in your alexa skill in order for it to work.
     """
     session_attributes = {}
     card_title = "My Whispers"
-    outputs = ["Let me find your whispers! One second!", "Hang tight! Let me see if you have any whispers!", "I hope you have a whisper today! Give me a second!", "Let me check for your whispers! That's exciting!"]
-    speech_output = outputs[random.randint(0, len(outputs)-1)]
+    
+    userId = session['user']['userId']
+    password = intent['slots']['password']['value']
+    
+    whispers = read_whisper(userId, password)
+    
+    speech_output = build_output(whispers)
+    
     reprompt_text = "I'm still searhing for your whispers! Hang tight!"
     should_end_session = False
-    return build_response(session_attributes, build_speechlet_response(
+    return build_response(session_attributes, build_whispered_response(
         card_title, speech_output, reprompt_text, should_end_session))
         
 def get_sendwhisper_response(session, intent):
@@ -57,10 +100,6 @@ def get_sendwhisper_response(session, intent):
     in your alexa skill in order for it to work.
     """
     session_attributes = {}
-    
-    print("print intent")
-    print(session)
-    #print(intent)
     
     card_title = "Send Whisper To"
     speech_output = "All right, I'll send your whisper to " + intent['slots']['name']['value'] 
@@ -93,8 +132,7 @@ def get_welcome_response():
 
 def handle_session_end_request():
     card_title = "Session Ended"
-    speech_output = "Thank you for trying the Alexa Skills Kit sample. " \
-                    "Have a nice day! "
+    speech_output = "Thank you for using whispers! Bye! "
     # Setting this to true ends the session and exits the skill.
     should_end_session = True
     return build_response({}, build_speechlet_response(
@@ -130,7 +168,7 @@ def on_intent(intent_request, session):
     if intent_name == "test":
         return get_test_response()
     elif intent_name == "ReadWhispers":
-        return get_readwhispers_response()
+        return get_readwhispers_response(session, intent)
     elif intent_name == "SendWhisperToName":
         return get_sendwhisper_response(session, intent)
     elif intent_name == "AMAZON.HelpIntent":
@@ -165,7 +203,7 @@ def lambda_handler(event, context):
     function.
     """
     if (event['session']['application']['applicationId'] !=
-            "skill_id"):
+            "amzn1.ask.skill.28bf33ec-531c-4378-83cd-5a2499b8a642"):
         raise ValueError("Invalid Application ID")
 
     if event['session']['new']:
