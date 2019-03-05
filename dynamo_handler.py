@@ -68,16 +68,14 @@ def read_whisper(userId, password):
         KeyConditionExpression=Key('userId').eq(userId)
     )
     
+    whisper_list = []
     if ext_whisper['Count'] > 0:
-        whisper_list = []
         for whisper in ext_whisper['Items'][0]['whispers']:
             if whisper['password'] == password:
                 whisper_list.append(whisper['whisper'])
         
-        print(whisper_list)
-        return whisper_list
-    
-    return []
+    print(whisper_list)
+    return whisper_list
 
 class Whisper:
     def __init__(self, userId, whisper, password, to):
