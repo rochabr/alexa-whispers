@@ -59,20 +59,22 @@ def build_response(session_attributes, speechlet_response):
 
 
 def build_output(whispers):
+    output = ""
     if len(whispers) == 0:
-        return "You don't have any whispers, today. Check again tomorrow!"
+        return "<speak>You don't have any whispers today. Check again tomorrow!</speak>"
     elif len(whispers) == 1:
-        return "<speak>You have one whisper! How exciting! Here it is! <amazon:effect name=\"whispered\">" + whispers[0] + ".</amazon:effect>.</speak>"
+        output += "<speak>You have one whisper! How exciting! Here it is! <emphasis level=\"strong\"><amazon:effect name=\"whispered\">" + whispers[0] + ".</amazon:effect></emphasis>"
+        output += "<break time=\"1s\"/>Well, I hope you've enjoyed your whisper!"
     else:
         count = 1
         output = "<speak>You have " + str(len(whispers)) + " whispers. Let me whisper them to you..." 
         for whisper in whispers:
-            output += "<break time=\"1s\"/>Whisper number " + str(count) + "! <amazon:effect name=\"whispered\">" + whisper + ".</amazon:effect>"
+            output += "<break time=\"1s\"/>Whisper number " + str(count) + "! <emphasis level=\"strong\"><amazon:effect name=\"whispered\">" + whisper + ".</amazon:effect></emphasis>"
             count = count + 1
         
-        output += "<break time=\"1s\"/>Well, I hope you've enjoyed your whispers! Check again soon!</speak>"
-        print(output)
-        return output
+        output += "<break time=\"1s\"/>Well, I hope you've enjoyed your whispers!"
+    print(output)
+    return output + "<break time=\"2s\"/> What do you want to do now?</speak>"
     
 
 # --------------- Functions that control the skill's behavior ------------------
@@ -90,7 +92,7 @@ def get_readwhispers_response(session, intent):
     
     speech_output = build_output(whispers)
     
-    reprompt_text = "I'm still searhing for your whispers! Hang tight!"
+    reprompt_text = "What do you want to do now?"
     should_end_session = False
     return build_response(session_attributes, build_whispered_response(
         card_title, speech_output, reprompt_text, should_end_session))
@@ -102,8 +104,9 @@ def get_sendwhisper_response(session, intent):
     session_attributes = {}
     
     card_title = "Send Whisper To"
-    speech_output = "All right, I'll send your whisper to " + intent['slots']['name']['value'] 
-    reprompt_text = "Sending whisper"
+    name = intent['slots']['name']['value']
+    speech_output = "All right, I've send your whisper to " +  name + ". What do you want to do now?"
+    reprompt_text = speech_output
     
     userID = session['user']['userId']
     
@@ -132,7 +135,7 @@ def get_welcome_response():
 
 def handle_session_end_request():
     card_title = "Session Ended"
-    speech_output = "Thank you for using whispers! Bye! "
+    speech_output = "Thank you for using the whisper app! Bye! "
     # Setting this to true ends the session and exits the skill.
     should_end_session = True
     return build_response({}, build_speechlet_response(
@@ -163,11 +166,11 @@ def on_intent(intent_request, session):
 
     intent = intent_request['intent']
     intent_name = intent_request['intent']['name']
+    
+    print(intent_request)
 
     # Dispatch to your skill's intent handlers
-    if intent_name == "test":
-        return get_test_response()
-    elif intent_name == "ReadWhispers":
+    if intent_name == "ReadWhispers":
         return get_readwhispers_response(session, intent)
     elif intent_name == "SendWhisperToName":
         return get_sendwhisper_response(session, intent)
@@ -202,9 +205,10 @@ def lambda_handler(event, context):
     prevent someone else from configuring a skill that sends requests to this
     function.
     """
-    if (event['session']['application']['applicationId'] !=
-            "amzn1.ask.skill.28bf33ec-531c-4378-83cd-5a2499b8a642"):
-        raise ValueError("Invalid Application ID")
+    print(event['session']['application']['applicationId'])
+    # if (event['session']['application']['applicationId'] !=
+    #         ""):
+    #     raise ValueError("Invalid Application ID")
 
     if event['session']['new']:
         on_session_started({'requestId': event['request']['requestId']},
