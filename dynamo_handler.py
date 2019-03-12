@@ -83,21 +83,3 @@ class Whisper:
         self.whisper = whisper
         self.password = password
         self.to = to
-
-    
-# title = "The Big New Movie"
-# year = 2015
-
-# response = table.put_item(
-#   Item={
-#         'year': year,
-#         'title': title,
-#         'info': {
-#             'plot':"Nothing happens at all.",
-#             'rating': decimal.Decimal(0)
-#         }
-#     }
-# )
-
-# print("PutItem succeeded:")
-# print(json.dumps(response, indent=4, cls=DecimalEncoder))
